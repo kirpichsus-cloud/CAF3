@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatAndFun - Absolute Edition v5.0</title>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
+    
+    <!-- ПОДКЛЮЧЕНИЕ СЕТЕВОГО МОДУЛЯ (FIREBASE) -->
+    <script src="https://www.gstatic.com"></script>
+    <script src="https://www.gstatic.com"></script>
+
+    <style>
+        /* 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ТЕМАТИКА (GLASSMORPHISM) */
+        :root {
+            --bg-deep: #0f0c29;
+            --bg-gradient: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            --accent-purple: #9d50bb;
+            --accent-neon: #a100ff;
+            --glass: rgba(255, 255, 255, 0.08);
+            --glass-heavy: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --text-white: #ffffff;
+            --text-dim: #b0b0b0;
+            --gold: #ffd700;
+            --success: #00ff88;
+            --xp-primary: #00d4ff;
+            --shadow-soft: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* 2. БАЗОВЫЕ НАСТРОЙКИ СТРАНИЦЫ */
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Inter', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+        
+        body { 
+            background: var(--bg-gradient); 
+            background-attachment: fixed;
+            height: 100vh; 
+            color: var(--text-white); 
+            overflow: hidden; 
+            display: flex; 
+            justify-content: center; 
+        }
+
+        /* 3. ОСНОВНОЙ КОНТЕЙНЕР ПРИЛОЖЕНИЯ */
+        #app {
+            width: 100%; 
+            max-width: 500px; 
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(40px);
+            border-left: 1px solid var(--glass-border);
+            border-right: 1px solid var(--glass-border);
+            display: flex; 
+            flex-direction: column; 
+            position: relative;
+            box-shadow: var(--shadow-soft);
+        }
+
+        /* 4. ШАПКА (HEADER) */
+        header { 
+            padding: 22px; 
+            text-align: center; 
+            border-bottom: 1px solid var(--glass-border);
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2); 
+            z-index: 1000;
+        }
+        .header-back { 
+            cursor: pointer; 
+            font-size: 1.5rem; 
+            visibility: hidden; 
+            width: 40px; 
+            font-weight: 800; 
+            transition: 0.3s;
+        }
+        .header-back:hover { color: var(--accent-neon); }
+        .header-title { font-weight: 800; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* 5. ЭКРАНЫ И КОНТЕНТ */
+        .viewport { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px; 
+            padding-bottom: 120px; 
+            scrollbar-width: none;
+        }
+        .viewport::-webkit-scrollbar { display: none; }
+
+        .screen { 
+            display: none; 
+            opacity: 0; 
+            transform: translateY(20px); 
+            transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1); 
+        }
+        .screen.active { display: block; opacity: 1; transform: translateY(0); }
+
+        /* 6. UI КАРТОЧКИ (CARDS) */
+        .card { 
+            background: var(--glass); 
+            border: 1px solid var(--glass-border);
+            border-radius: 24px; 
+            padding: 20px; 
+            margin-bottom: 18px; 
+            transition: 0.3s;
+            position: relative;
+        }
+        .card:hover { background: var(--glass-heavy); transform: scale(1.02); }
+
+        /* 7. КНОПКИ (BUTTONS) */
+        .btn-main { 
+            background: var(--accent-purple); 
+            color: white; 
+            border: none; 
+            padding: 16px; 
+            border-radius: 18px; 
+            cursor: pointer; 
+            font-weight: 800; 
+            width: 100%;
+            transition: 0.2s; 
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .btn-main:active { transform: scale(0.96); filter: brightness(1.2); }
+        .btn-prime-buy { background: linear-gradient(90deg, #9d50bb, #a100ff); box-shadow: 0 4px 15px rgba(161, 0, 255, 0.3); }
+
+        /* 8. СИСТЕМА УРОВНЕЙ И XP */
+        .level-card { margin-bottom: 25px; }
+        .level-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
+        .level-label { font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; }
+        .level-val { font-weight: 900; font-size: 1.8rem; color: var(--xp-primary); }
+        .progress-bg { width: 100%; height: 12px; background: rgba(0, 0, 0, 0.4); border-radius: 6px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--xp-primary); width: 0%; transition: width 1s ease-in-out; }
+
+        /* 9. ЧАТЫ И ДИАЛОГИ */
+        .chat-row {
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            padding: 18px;
+            background: var(--glass); 
+            border-radius: 20px; 
+            margin-bottom: 12px;
+            cursor: pointer; 
+            border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .chat-row:hover { border-color: var(--accent-neon); background: var(--glass-heavy); }
+        .chat-avatar { 
+            width: 55px; 
+            height: 55px; 
+            background: #1a1a2e; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 1.4rem;
+            border: 2px solid var(--glass-border); 
+            position: relative;
+        }
+        .prime-aura { border-color: var(--gold) !important; box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
+
+        /* 10. МОДАЛЬНОЕ ОКНО ЧАТА */
+        #chat-engine {
+            position: absolute; 
+            top: 75px; 
+            left: 0; 
+            width: 100%; 
+            height: calc(100% - 165px);
+            background: var(--bg-deep); 
+            z-index: 500; 
+            display: none; 
+            flex-direction: column;
+            animation: slideLeft 0.3s ease;
+        }
+        @keyframes slideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .msg-feed { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 0.9rem; line-height: 1.4; }
+        .bubble.sent { align-self: flex-end; background: var(--accent-neon); border-bottom-right-radius: 4px; }
+        .bubble.received { align-self: flex-start; background: var(--glass-heavy); border-bottom-left-radius: 4px; }
+
+        /* 11. ИНВЕНТАРЬ (INVENTORY) */
+        .inventory-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 15px; }
+        .slot { 
+            aspect-ratio: 1/1; 
+            background: rgba(0, 0, 0, 0.3); 
+            border: 1px dashed var(--glass-border);
+            border-radius: 18px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 0.65rem; 
+            color: var(--text-dim);
+            transition: 0.3s;
+        }
+        .slot-active { border: 1.5px solid var(--gold); background: var(--glass-heavy); color: white; }
+
+        /* 12. ТИТУЛЫ (TITLES) */
+        .title-badge { 
+            font-size: 0.7rem; 
+            padding: 3px 8px; 
+            border-radius: 6px; 
+            margin-left: 10px; 
+            font-weight: 800; 
+            border: 1px solid; 
+            text-transform: uppercase;
+        }
+
+        /* 13. НАВИГАЦИЯ (BOTTOM NAVIGATION) */
+        nav { 
+            position: absolute; 
+            bottom: 0; 
+            width: 100%; 
+            height: 90px; 
+            background: rgba(5, 5, 15, 0.95); 
+            backdrop-filter: blur(20px);
+            display: flex; 
+            justify-content: space-around; 
+            align-items: center; 
+            border-top: 1px solid var(--glass-border);
+            z-index: 1000;
+        }
+        .nav-item { color: #555; text-align: center; cursor: pointer; font-size: 0.7rem; transition: 0.3s; flex: 1; }
+        .nav-item.active { color: var(--accent-neon); transform: translateY(-8px); }
+        .nav-item i { font-size: 1.6rem; display: block; margin-bottom: 4px; font-style: normal; }
+
+        /* 14. ПОЛЯ ВВОДА (INPUTS) */
+        .input-area { padding: 15px; background: rgba(0, 0, 0, 0.4); display: flex; gap: 10px; }
+        .input-style { 
+            flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); 
+            padding: 14px; color: white; border-radius: 14px; outline: none; transition: 0.3s;
+        }
+        .input-style:focus { border-color: var(--accent-neon); }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- HEADER -->
+    <header>
+        <div id="nav-back" class="header-back" onclick="appCloseChat()">❮</div>
+        <div id="app-title" class="header-title">Мессенджер</div>
+        <div style="width: 40px;"></div>
+    </header>
+
+    <div class="viewport">
+        <!-- SCREEN: CHATS -->
+        <div id="scr-chats" class="screen active">
+            <div class="chat-row" onclick="appOpenChat('Избранное', 'fav_storage')">
+                <div class="chat-avatar">⭐</div>
+                <div>
+                    <strong>Избранное</strong>
+                    <p style="font-size: 0.8rem; color: var(--text-dim);">Твои заметки в облаке</p>
+                </div>
+            </div>
+            <div id="friends-inject"></div>
+            <div id="chat-empty-hint" style="text-align: center; margin-top: 50px; color: var(--text-dim); padding: 0 40px;">
+                <p>Здесь пока пусто.</p>
+                <p style="font-size: 0.8rem; margin-top: 10px;">Добавь друга по ID в разделе Сервис.</p>
+            </div>
+        </div>
+
+        <!-- SCREEN: QUESTS -->
+        <div id="scr-quests" class="screen">
+            <div class="card level-card">
+                <div class="level-header">
+                    <span class="level-label">Прогресс аккаунта</span>
+                    <span class="level-val">LVL <span id="ui-lvl">1</span></span>
+                </div>
+                <div class="progress-bg">
+                    <div id="ui-xp-bar" class="progress-fill"></div>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 10px;">
+                    До повышения: <span id="ui-xp-left">100</span> XP
+                </p>
+            </div>
+
+            <div class="card" id="q-box-1">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="color:var(--success);">+20 CAF | +45 XP</strong>
+                    <span style="font-size:0.6rem; opacity:0.6;">ОБЫЧНОЕ</span>
+                </div>
+                <h3 style="margin: 8px 0;">Первая переписка</h3>
+                <p style="font-size:0.8rem; color:var(--text-dim);">Отправьте 5 сообщений в Избранное.</p>
+                <button class="btn-main" style="margin-top: 15px; background:var(--success); color:#000;" onclick="logicClaimQuest(20, 45, 'q-box-1')">ВЫПОЛНИТЬ</button>
+            </div>
+
+            <div class="card" id="q-box-2">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="color:var(--success);">+150 CAF | +120 XP</strong>
+                    <span style="font-size:0.6rem; opacity:0.6; color:var(--gold);">РЕДКОЕ</span>
+                </div>
+                <h3 style="margin: 8px 0;">Расширение связей</h3>
+                <p style="font-size:0.8rem; color:var(--text-dim);">Добавьте первого друга по уникальному ID.</p>
+                <button class="btn-main" style="margin-top: 15px; background:var(--success); color:#000;" onclick="logicClaimQuest(150, 120, 'q-box-2')">ВЫПОЛНИТЬ</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: MARKET -->
+        <div id="scr-market" class="screen" style="text-align: center; padding-top: 80px;">
+            <div style="font-size: 5rem;">🛒</div>
+            <h2 style="margin-top: 20px;">Marketplace</h2>
+            <p style="color: var(--text-dim); margin-top: 15px;">Раздел наполняется товарами.</p>
+            <div id="ui-prime-early" style="display:none; margin: 30px auto; padding: 20px; border: 1px solid var(--gold); border-radius: 20px; background: rgba(255,215,0,0.05); color: var(--gold); width: 85%;">
+                ⭐ <b>Prime Доступ:</b><br>Тебе будут доступны лимитированные коллекции.
+            </div>
+        </div>
+
+        <!-- SCREEN: PROFILE -->
+        <div id="scr-profile" class="screen">
+            <div class="card" style="text-align: center;">
+                <div id="ui-avatar-glow" class="chat-avatar" style="width: 90px; height: 90px; margin: 0 auto 15px; font-size: 2.5rem;">👤</div>
+                <h2 id="ui-username">User <span id="ui-title-slot"></span></h2>
+                <div style="color: var(--gold); font-size: 1.8rem; font-weight: 900; margin: 12px 0;">
+                    <span id="ui-balance">1250</span> <small style="font-size: 0.8rem;">CAF</small>
+                </div>
+                <div id="ui-my-id" style="font-size: 0.75rem; color: var(--text-dim); background: rgba(0,0,0,0.2); padding: 6px 15px; border-radius: 12px; display: inline-block;">ID: ...</div>
+            </div>
+
+            <div class="card">
+                <h4 style="margin-bottom: 12px;">🎒 Твой инвентарь</h4>
+                <div class="inventory-grid">
+                    <div class="slot" id="inv-slot-0">Пусто</div>
+                    <div class="slot">Пусто</div>
+                    <div class="slot">Пусто</div>
+                </div>
+            </div>
+
+            <div id="ui-prime-buy-box" class="card">
+                <h3>Купить CAF Prime</h3>
+                <p style="font-size: 0.8rem; color: var(--text-dim); margin: 8px 0;">Открой редактор титулов и получи бонус к XP.</p>
+                <button class="btn-main btn-prime-buy" style="margin-top: 15px;" onclick="logicBuyPrime()">Активировать (8000 CAF)</button>
+            </div>
+
+            <div id="ui-prime-active-box" class="card" style="display: none; border-color: var(--gold);">
+                <h3 style="color: var(--gold);">Редактор титула</h3>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <input type="text" id="ui-in-title" class="input-style" placeholder="Легенда..." maxlength="10">
+                    <input type="color" id="ui-in-color" value="#00ff88" style="width: 50px; height: 50px; border: none; background: none; cursor: pointer;">
+                </div>
+                <button class="btn-main" style="margin-top: 15px; background: #333;" onclick="logicSaveTitle()">Применить</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: SETTINGS -->
+        <div id="scr-settings" class="screen">
+            <div class="card">
+                <h4>Добавить в друзья</h4>
+                <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 15px;">Введи ID, чтобы начать переписку по сети.</p>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="ui-in-friend-id" class="input-style" placeholder="CAF-000-XXX">
+                    <button class="btn-main" style="width: 70px;" onclick="logicAddFriend()">✚</button>
+                </div>
+            </div>
+            <div class="card">
+                <h4>Аккаунт</h4>
+                <button class="btn-main" style="background: #222; margin-top: 10px;">Смена языка: RU</button>
+                <button class="btn-main" style="background: #222; margin-top: 10px;">Тема: Deep Indigo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHAT UI WINDOW -->
+    <div id="chat-engine">
+        <div class="msg-feed" id="chat-feed-box"></div>
+        <div class="input-area">
+            <input type="text" id="ui-chat-input" class="input-style" placeholder="Напиши что-нибудь..." onkeyup="if(event.key==='Enter') logicPushMsg()">
+            <button class="btn-main" style="width: 80px;" onclick="logicPushMsg()">➤</button>
+        </div>
+    </div>
+
+    <!-- NAVIGATION BAR -->
+    <nav>
+        <div class="nav-item active" onclick="appTab('scr-chats', 'Чаты', this)"><i>💬</i>Чаты</div>
+        <div class="nav-item" onclick="appTab('scr-quests', 'Задания', this)"><i>🎯</i>Задания</div>
+        <div class="nav-item" onclick="appTab('scr-market', 'Маркет', this)"><i>🛍️</i>Маркет</div>
+        <div class="nav-item" onclick="appTab('scr-profile', 'Профиль', this)"><i>👤</i>Профиль</div>
+        <div class="nav-item" onclick="appTab('scr-settings', 'Сервис', this)"><i>⚙️</i>Сервис</div>
+    </nav>
+</div>
+
+<script>
+    /* -----------------------------------------------------------
+       КОНФИГУРАЦИЯ БАЗЫ ДАННЫХ (FIREBASE)
+       Для работы сети: вставь свои ключи из консоли Firebase
+       ----------------------------------------------------------- */
+    const fbConfig = {
+        apiKey: "AIzaSyCXuAviTi-XJJUR1e7vOSptn6OT2Vli20Y",
+        databaseURL: "https://chatandfun-b3aa9-default-rtdb.firebaseio.com",
+        projectId: "chatandfun-b3aa9",
+    };
+
+    // Инициализация (безопасная проверка)
+    if(fbConfig.apiKey !== "AIzaSyCXuAviTi-XJJUR1e7vOSptn6OT2Vli20Y") {
+        firebase.initializeApp(fbConfig);
+    }
+    const network = (fbConfig.apiKey !== "AIzaSyCXuAviTi-XJJUR1e7vOSptn6OT2Vli20Y") ? firebase.database() : null;
+
+    /* -----------------------------------------------------------
+       СОСТОЯНИЕ ПРИЛОЖЕНИЯ (STATE)
+       ----------------------------------------------------------- */
+    const Data = {
+        user: {
+            id: localStorage.getItem('caf_id') || ("CAF-" + Math.floor(100+Math.random()*899) + "-" + Math.random().toString(36).substring(2,5).toUpperCase()),
+            balance: 1250,
+            xp: 0,
+            lvl: 1,
+            xpMax: 100,
+            isPrime: false,
+            title: "",
+            titleColor: "#fff"
+        },
+        activeView: 'scr-chats',
+        activeRoom: null
+    };
+    localStorage.setItem('caf_id', Data.user.id);
+
+    /* -----------------------------------------------------------
+       ЛОГИКА ИНТЕРФЕЙСА (UI)
+       ----------------------------------------------------------- */
+    function appTab(scrId, title, el) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(scrId).classList.add('active');
+        document.getElementById('app-title').innerText = title;
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        el.classList.add('active');
+        
+        appCloseChat();
+        Data.activeView = scrId;
+    }
+
+    function appOpenChat(name, roomID) {
+        Data.activeRoom = roomID;
+        document.getElementById('chat-engine').style.display = 'flex';
+        document.getElementById('app-title').innerText = name;
+        document.getElementById('nav-back').style.visibility = 'visible';
+        document.getElementById('chat-feed-box').innerHTML = "";
+        
+        // Подключение к Realtime Database
+        if(network) {
+            network.ref('messages/' + roomID).limitToLast(25).on('child_added', (snap) => {
+                const msg = snap.val();
+                appRenderBubble(msg.text, msg.sender === Data.user.id);
+            });
+        } else {
+            appRenderBubble("Внимание: Firebase не настроен. Сообщения не будут передаваться другу.", false);
+        }
+    }
+
+    function appCloseChat() {
+        if(network && Data.activeRoom) network.ref('messages/' + Data.activeRoom).off();
+        document.getElementById('chat-engine').style.display = 'none';
+        document.getElementById('nav-back').style.visibility = 'hidden';
+        if(Data.activeView === 'scr-chats') document.getElementById('app-title').innerText = "Чаты";
+    }
+
+    function appRenderBubble(text, isMy) {
+        const feed = document.getElementById('chat-feed-box');
+        const b = document.createElement('div');
+        b.className = `bubble ${isMy ? 'sent' : 'received'}`;
+        b.innerText = text;
+        feed.appendChild(b);
+        feed.scrollTop = feed.scrollHeight;
+    }
+
+    /* -----------------------------------------------------------
+       ИГРОВАЯ И СЕТЕВАЯ ЛОГИКА
+       ----------------------------------------------------------- */
+    function logicPushMsg() {
+        const inp = document.getElementById('ui-chat-input');
+        if(!inp.value.trim() || !Data.activeRoom) return;
+
+        if(network) {
+            network.ref('messages/' + Data.activeRoom).push({
+                sender: Data.user.id,
+                text: inp.value,
+                ts: Date.now()
+            });
+        } else {
+            appRenderBubble(inp.value, true);
+        }
+        inp.value = "";
+    }
+
+    function logicClaimQuest(c, x, qId) {
+        Data.user.balance += c;
+        Data.user.xp += x;
+        
+        if(Data.user.xp >= Data.user.xpMax) {
+            Data.user.lvl++;
+            Data.user.xp -= Data.user.xpMax;
+            Data.user.xpMax = Math.floor(Data.user.xpMax * 1.6);
+            alert("✨ LEVEL UP! Твой уровень: " + Data.user.lvl);
+        }
+        
+        const q = document.getElementById(qId);
+        q.style.opacity = '0.4';
+        q.querySelector('button').disabled = true;
+        q.querySelector('button').innerText = "ПОЛУЧЕНО";
+        
+        logicUpdateUI();
+    }
+
+    function logicBuyPrime() {
+        if(Data.user.balance < 8000) return alert("Недостаточно CAF Coins!");
+        Data.user.balance -= 8000;
+        Data.user.isPrime = true;
+        logicUpdateUI();
+        alert("💎 CAF Prime успешно активирован!");
+    }
+
+    function logicSaveTitle() {
+        Data.user.title = document.getElementById('ui-in-title').value;
+        Data.user.titleColor = document.getElementById('ui-in-color').value;
+        logicUpdateUI();
+    }
+
+    function logicAddFriend() {
+        const inp = document.getElementById('ui-in-friend-id');
+        const id = inp.value.trim();
+        
+        if(!id.startsWith("CAF-") || id === Data.user.id) return alert("Неверный ID!");
+        
+        // Генерация ключа комнаты
+        const room = [Data.user.id, id].sort().join("").replace(/-/g, "");
+        const name = "Друг_" + id.slice(-3);
+        
+        const wrap = document.getElementById('friends-inject');
+        const div = document.createElement('div');
+        div.className = 'chat-row';
+        div.onclick = () => appOpenChat(name, room);
+        div.innerHTML = `<div class="chat-avatar">👤</div><div><strong>${name}</strong><p style="font-size:0.8rem;color:var(--text-dim);">Нажми, чтобы войти</p></div>`;
+        
+        wrap.appendChild(div);
+        document.getElementById('chat-empty-hint').style.display = 'none';
+        inp.value = "";
+        alert("Друг добавлен в список!");
+    }
+
+    function logicUpdateUI() {
+        // Профиль
+        document.getElementById('ui-balance').innerText = Data.user.balance;
+        document.getElementById('ui-my-id').innerText = "ID: " + Data.user.id;
+        document.getElementById('ui-lvl').innerText = Data.user.lvl;
+        document.getElementById('ui-xp-left').innerText = (Data.user.xpMax - Data.user.xp);
+        document.getElementById('ui-xp-bar').style.width = (Data.user.xp / Data.user.xpMax * 100) + "%";
+
+        if(Data.user.isPrime) {
+            document.getElementById('ui-prime-buy-box').style.display = 'none';
+            document.getElementById('ui-prime-active-box').style.display = 'block';
+            document.getElementById('ui-prime-early').style.display = 'block';
+            document.getElementById('ui-avatar-glow').classList.add('prime-aura');
+            
+            const slot = document.getElementById('inv-slot-0');
+            slot.className = 'slot slot-active';
+            slot.innerHTML = "💎 Prime Pass";
+        }
+
+        if(Data.user.title) {
+            const b = document.getElementById('ui-title-slot');
+            b.innerText = Data.user.title;
+            b.className = "title-badge";
+            b.style.color = Data.user.titleColor;
+            b.style.borderColor = Data.user.titleColor;
+        }
+    }
+
+    // Инициализация при запуске
+    logicUpdateUI();
+</script>
+
+
+</body>
+</html>
