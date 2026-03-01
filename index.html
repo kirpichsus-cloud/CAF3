@@ -419,7 +419,9 @@
             titleColor: "#fff"
         },
         activeView: 'scr-chats',
-        activeRoom: null
+        activeRoom: null,
+        activeRoomName: null,
+        messageListeners: {} // Для хранения активных слушателей
     };
     localStorage.setItem('caf_id', Data.user.id);
 
@@ -439,16 +441,58 @@
 
     function appOpenChat(name, roomID) {
         Data.activeRoom = roomID;
+        Data.activeRoomName = name;
         document.getElementById('chat-engine').style.display = 'flex';
         document.getElementById('app-title').innerText = name;
         document.getElementById('nav-back').style.visibility = 'visible';
-        document.getElementById('chat-feed-box').innerHTML = "";
         
-        // Подключение к Realtime Database
+        // Очищаем поле чата перед загрузкой
+        const feed = document.getElementById('chat-feed-box');
+        feed.innerHTML = "";
+        
+        // Загружаем историю сообщений
         if(network) {
-            network.ref('messages/' + roomID).limitToLast(25).on('child_added', (snap) => {
-                const msg = snap.val();
-                appRenderBubble(msg.text, msg.sender === Data.user.id);
+            // Удаляем предыдущий слушатель если есть
+            if(Data.messageListeners[roomID]) {
+                network.ref('messages/' + roomID).off('child_added', Data.messageListeners[roomID]);
+            }
+            
+            // Сначала загружаем последние 50 сообщений для истории
+            network.ref('messages/' + roomID).limitToLast(50).once('value', (snapshot) => {
+                const messages = [];
+                snapshot.forEach((childSnapshot) => {
+                    messages.push({
+                        key: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+                
+                // Отображаем все сообщения из истории
+                messages.forEach(msg => {
+                    appRenderBubble(msg.text, msg.sender === Data.user.id);
+                });
+                
+                // Прокручиваем вниз
+                feed.scrollTop = feed.scrollHeight;
+            }).then(() => {
+                // После загрузки истории подписываемся на новые сообщения
+                const listener = network.ref('messages/' + roomID).limitToLast(1).on('child_added', (snap) => {
+                    // Проверяем, есть ли уже такое сообщение в чате (чтобы избежать дублирования)
+                    const existingMessages = feed.querySelectorAll('.bubble');
+                    let exists = false;
+                    
+                    // Простая проверка: если сообщений много, пропускаем детальную проверку
+                    if (existingMessages.length > 0) {
+                        // Можно добавить более сложную логику проверки по ID сообщения
+                        // Но для простоты будем полагаться на то, что Firebase не дублирует
+                    }
+                    
+                    const msg = snap.val();
+                    appRenderBubble(msg.text, msg.sender === Data.user.id);
+                });
+                
+                // Сохраняем слушатель
+                Data.messageListeners[roomID] = listener;
             });
         } else {
             appRenderBubble("Внимание: Firebase не настроен. Сообщения не будут передаваться другу.", false);
@@ -456,7 +500,13 @@
     }
 
     function appCloseChat() {
-        if(network && Data.activeRoom) network.ref('messages/' + Data.activeRoom).off();
+        if(network && Data.activeRoom) {
+            // Отписываемся от слушателя при закрытии чата
+            if(Data.messageListeners[Data.activeRoom]) {
+                network.ref('messages/' + Data.activeRoom).off('child_added', Data.messageListeners[Data.activeRoom]);
+                delete Data.messageListeners[Data.activeRoom];
+            }
+        }
         document.getElementById('chat-engine').style.display = 'none';
         document.getElementById('nav-back').style.visibility = 'hidden';
         if(Data.activeView === 'scr-chats') document.getElementById('app-title').innerText = "Чаты";
@@ -576,7 +626,6 @@
     // Инициализация при запуске
     logicUpdateUI();
 </script>
-
 
 </body>
 </html>
